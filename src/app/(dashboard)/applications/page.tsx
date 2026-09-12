@@ -22,6 +22,7 @@ import {
   Calendar,
   Filter,
   Sparkles,
+  FolderCheck,
 } from 'lucide-react';
 import { CreateInterviewModal } from '@/components/scheduler/create-interview-modal';
 import { EditJobModal } from '@/components/applications/edit-job-modal';
@@ -34,6 +35,7 @@ interface ApplicationItem {
   applicationDate: string;
   createdAt: string;
   notes: string;
+  requiredDocuments?: string[];
   company?: { _id: string; name: string } | null;
 }
 
@@ -234,13 +236,28 @@ export default function ApplicationsPage() {
                     </div>
                   </div>
                   {app.notes && <p className="mt-3 text-sm text-muted-foreground whitespace-pre-wrap break-words">{app.notes}</p>}
+                  {app.requiredDocuments && app.requiredDocuments.length > 0 && (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                      <span className="text-xs font-medium text-amber-800 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/70">
+                        <FolderCheck className="w-3.5 h-3.5 text-amber-600" />
+                        {app.requiredDocuments.length} hồ sơ cần mang theo:
+                      </span>
+                      {app.requiredDocuments.slice(0, 3).map((doc, i) => (
+                        <span key={i} className="text-xs text-muted-foreground bg-muted/60 px-2 py-0.5 rounded border">
+                          {doc}
+                        </span>
+                      ))}
+                      {app.requiredDocuments.length > 3 && (
+                        <span className="text-xs text-muted-foreground">+{app.requiredDocuments.length - 3} khác</span>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
           })}
         </div>
       )}
-
       {total > 50 && <div className="flex flex-wrap items-center justify-center gap-3"><Button variant="outline" disabled={loading || page <= 1} onClick={() => setPage((p) => p - 1)}>Trang trước</Button><span className="text-sm">Trang {page} / {Math.ceil(total / 50)}</span><Button variant="outline" disabled={loading || page >= Math.ceil(total / 50)} onClick={() => setPage((p) => p + 1)}>Trang sau</Button></div>}
       {editingId && <EditJobModal key={editingId} applicationId={editingId} onClose={() => setEditingId(null)} onSaved={fetchApplications} />}
       {/* Modals */}

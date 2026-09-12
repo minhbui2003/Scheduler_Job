@@ -154,6 +154,7 @@ export async function POST(request: NextRequest) {
       applicationDate: validated.applicationDate ? new Date(validated.applicationDate) : new Date(),
       status: validated.status,
       jdText: validated.jdText,
+      requiredDocuments: validated.requiredDocuments || [],
       notes: validated.notes,
     });
 

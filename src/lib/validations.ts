@@ -66,6 +66,7 @@ export const createApplicationSchema = z.object({
     .optional()
     .default('APPLIED'),
   jdText: z.string().max(50000).optional().default(''),
+  requiredDocuments: z.array(z.string().trim().max(500)).optional().default([]),
   notes: z.string().max(10000).optional().default(''),
 });
 
@@ -88,6 +89,7 @@ export const updateApplicationSchema = z.object({
   jdOriginalFilename: z.string().max(255).optional(),
   cvFileUrl: z.string().optional(),
   cvOriginalFilename: z.string().max(255).optional(),
+  requiredDocuments: z.array(z.string().trim().max(500)).optional(),
   notes: z.string().max(10000).optional(),
 });
 

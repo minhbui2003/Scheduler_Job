@@ -47,6 +47,9 @@ import {
   FileUp,
   Trash2,
   Pencil,
+  Plus,
+  FolderCheck,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PostInterviewReviewModal } from '@/components/reviews/post-interview-review-modal';
@@ -61,6 +64,7 @@ interface ApplicationData {
   jdText?: string;
   jdFileUrl?: string;
   jdOriginalFilename?: string;
+  requiredDocuments?: string[];
   status?: string;
   notes?: string;
 }
@@ -143,6 +147,11 @@ export function InterviewDetailSheet({ interview, open, onClose, onUpdate }: Pro
   const [editJDFileUrl, setEditJDFileUrl] = useState('');
   const [savingJD, setSavingJD] = useState(false);
   const [copiedJD, setCopiedJD] = useState(false);
+
+  // Required documents state
+  const [showAddDoc, setShowAddDoc] = useState(false);
+  const [newDocText, setNewDocText] = useState('');
+  const [savingDocs, setSavingDocs] = useState(false);
 
   // Sync application data when interview changes
   useEffect(() => {
@@ -318,6 +327,86 @@ export function InterviewDetailSheet({ interview, open, onClose, onUpdate }: Pro
     setTimeout(() => setCopiedJD(false), 2000);
   };
 
+  const SUGGESTED_DOCUMENTS = [
+    'CCCD photo công chứng',
+    'Sơ yếu lý lịch',
+    'Bằng tốt nghiệp ĐH / CĐ',
+    'Bản in CV (2 bản)',
+    'Ảnh thẻ 3x4 (2 tấm)',
+    'Bảng điểm / Chứng chỉ ngoại ngữ',
+    'Portfolio dự án',
+  ];
+
+  const handleAddDocument = async (textToAdd?: string) => {
+    const text = (textToAdd !== undefined ? textToAdd : newDocText).trim();
+    if (!text) {
+      toast.error('Vui lòng nhập nội dung hồ sơ / giấy tờ cần mang theo');
+      return;
+    }
+    if (savingDocs) return;
+    if (!interview.applicationId) {
+      toast.error('Không tìm thấy thông tin công việc');
+      return;
+    }
+
+    const currentDocs = application?.requiredDocuments || [];
+    if (currentDocs.includes(text)) {
+      toast.error('Yêu cầu hồ sơ này đã có trong danh sách');
+      return;
+    }
+
+    const updatedDocs = [...currentDocs, text];
+    setSavingDocs(true);
+    try {
+      const res = await fetch(`/api/applications/${interview.applicationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requiredDocuments: updatedDocs }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setApplication((prev) => (prev ? { ...prev, requiredDocuments: updatedDocs } : null));
+        setNewDocText('');
+        toast.success(`Đã thêm: "${text}"`);
+        onUpdate();
+      } else {
+        toast.error(data.error || 'Không thể lưu yêu cầu hồ sơ');
+      }
+    } catch {
+      toast.error('Lỗi khi lưu yêu cầu hồ sơ');
+    } finally {
+      setSavingDocs(false);
+    }
+  };
+
+  const handleDeleteDocument = async (indexToDelete: number) => {
+    if (savingDocs || !interview.applicationId) return;
+    const currentDocs = application?.requiredDocuments || [];
+    const docToDelete = currentDocs[indexToDelete];
+    const updatedDocs = currentDocs.filter((_, i) => i !== indexToDelete);
+
+    setSavingDocs(true);
+    try {
+      const res = await fetch(`/api/applications/${interview.applicationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requiredDocuments: updatedDocs }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setApplication((prev) => (prev ? { ...prev, requiredDocuments: updatedDocs } : null));
+        toast.success(`Đã xóa: "${docToDelete}"`);
+        onUpdate();
+      } else {
+        toast.error(data.error || 'Không thể cập nhật yêu cầu hồ sơ');
+      }
+    } catch {
+      toast.error('Lỗi khi cập nhật yêu cầu hồ sơ');
+    } finally {
+      setSavingDocs(false);
+    }
+  };
+
   return (
     <>
       <Sheet
@@ -447,6 +536,139 @@ export function InterviewDetailSheet({ interview, open, onClose, onUpdate }: Pro
               )}
               {!application?.jdText && !application?.jdFileUrl && (
                 <p className="text-xs text-muted-foreground">Thêm nội dung hoặc đính kèm file mô tả công việc.</p>
+              )}
+            </div>
+
+            {/* Yêu cầu hồ sơ Section */}
+            <div className="rounded-xl border border-amber-200/80 bg-gradient-to-br from-white via-amber-50/20 to-orange-50/15 p-4 shadow-xs space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-amber-100 text-amber-800">
+                    <FolderCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                      Yêu cầu hồ sơ
+                    </h4>
+                    <span className="text-[11px] text-muted-foreground">
+                      {(application?.requiredDocuments?.length ?? 0) > 0
+                        ? `${application!.requiredDocuments!.length} giấy tờ / hồ sơ cần mang theo`
+                        : 'Chưa có yêu cầu hồ sơ'}
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAddDoc((v) => !v)}
+                  className="h-7 text-xs text-amber-800 hover:text-amber-900 hover:bg-amber-100 font-medium"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  {showAddDoc ? 'Đóng' : 'Thêm'}
+                </Button>
+              </div>
+
+              {/* Form nhập hồ sơ mới */}
+              {showAddDoc && (
+                <div className="p-3 rounded-lg border border-amber-200 bg-amber-50/40 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      autoFocus
+                      placeholder="Nhập hồ sơ cần mang theo (VD: CCCD photo, Bằng ĐH...)"
+                      value={newDocText}
+                      onChange={(e) => setNewDocText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddDocument();
+                        } else if (e.key === 'Escape') {
+                          setShowAddDoc(false);
+                        }
+                      }}
+                      className="h-8 text-xs bg-background"
+                      maxLength={500}
+                      disabled={savingDocs}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddDocument()}
+                      disabled={savingDocs || !newDocText.trim()}
+                      className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white shrink-0"
+                    >
+                      {savingDocs ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Thêm'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowAddDoc(false);
+                        setNewDocText('');
+                      }}
+                      disabled={savingDocs}
+                      className="h-8 text-xs shrink-0"
+                    >
+                      Hủy
+                    </Button>
+                  </div>
+                  {/* Gợi ý nhanh */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-600" /> Gợi ý:
+                    </span>
+                    {SUGGESTED_DOCUMENTS.filter(
+                      (s) => !(application?.requiredDocuments || []).includes(s)
+                    )
+                      .slice(0, 4)
+                      .map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() => handleAddDocument(suggestion)}
+                          className="text-[11px] px-2 py-0.5 rounded-full bg-white border border-amber-200/80 text-amber-900 hover:bg-amber-100 hover:border-amber-300 transition-colors cursor-pointer"
+                        >
+                          + {suggestion}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Danh sách hồ sơ */}
+              {application?.requiredDocuments && application.requiredDocuments.length > 0 ? (
+                <div className="space-y-1.5">
+                  {application.requiredDocuments.map((doc, idx) => (
+                    <div
+                      key={idx}
+                      className="group flex items-center justify-between gap-2 p-2.5 rounded-lg bg-background/80 border border-amber-200/50 hover:border-amber-300 transition-all text-xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-5 h-5 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 text-[11px] font-bold">
+                          {idx + 1}
+                        </div>
+                        <span className="font-medium text-foreground break-words leading-relaxed">
+                          {doc}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-red-600 hover:bg-red-50 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleDeleteDocument(idx)}
+                        disabled={savingDocs}
+                        title="Xóa hồ sơ này"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                !showAddDoc && (
+                  <p className="text-xs text-muted-foreground">
+                    Chưa có hồ sơ cần mang theo. Bấm <strong>+ Thêm</strong> để nhập các giấy tờ cần chuẩn bị cho buổi phỏng vấn.
+                  </p>
+                )
               )}
             </div>
 

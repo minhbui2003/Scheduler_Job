@@ -13,6 +13,7 @@ export interface IApplicationDocument extends Document {
   cvFileUrl: string;
   cvOriginalFilename: string;
   notes: string;
+  requiredDocuments: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -77,6 +78,10 @@ const ApplicationSchema = new Schema<IApplicationDocument>(
       type: String,
       default: '',
       maxlength: 10000,
+    },
+    requiredDocuments: {
+      type: [String],
+      default: [],
     },
   },
   {

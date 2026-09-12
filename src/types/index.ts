@@ -63,6 +63,7 @@ export interface IApplication {
   cvFileUrl: string;
   cvOriginalFilename: string;
   notes: string;
+  requiredDocuments?: string[];
   createdAt: Date;
   updatedAt: Date;
 }

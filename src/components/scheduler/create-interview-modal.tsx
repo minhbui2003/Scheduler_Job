@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, FolderCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Company {
@@ -66,7 +66,9 @@ export function CreateInterviewModal({ open, onClose, onCreated, prefillData }: 
     contactPhone: prefillData?.contactPhone || '',
     contactEmail: prefillData?.contactEmail || '',
     notes: prefillData?.notes || '',
+    requiredDocuments: [] as string[],
   });
+  const [docInput, setDocInput] = useState('');
 
   const fetchCompanies = useCallback(async () => {
     try {
@@ -144,6 +146,7 @@ export function CreateInterviewModal({ open, onClose, onCreated, prefillData }: 
           companyId,
           position: formData.position,
           status: 'INTERVIEW_SCHEDULED',
+          requiredDocuments: formData.requiredDocuments,
         }),
       });
       const appData = await appRes.json();
@@ -354,6 +357,70 @@ export function CreateInterviewModal({ open, onClose, onCreated, prefillData }: 
               value={formData.contactEmail}
               onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
             />
+          </div>
+
+          {/* Yêu cầu hồ sơ (tùy chọn) */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <FolderCheck className="w-4 h-4 text-amber-600" />
+              Yêu cầu hồ sơ mang theo (tùy chọn)
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nhập hồ sơ (VD: CCCD photo, Bằng ĐH, CV in...)"
+                value={docInput}
+                onChange={(e) => setDocInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const trimmed = docInput.trim();
+                    if (trimmed && !formData.requiredDocuments.includes(trimmed)) {
+                      setFormData({ ...formData, requiredDocuments: [...formData.requiredDocuments, trimmed] });
+                      setDocInput('');
+                    }
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const trimmed = docInput.trim();
+                  if (trimmed && !formData.requiredDocuments.includes(trimmed)) {
+                    setFormData({ ...formData, requiredDocuments: [...formData.requiredDocuments, trimmed] });
+                    setDocInput('');
+                  }
+                }}
+                disabled={!docInput.trim()}
+              >
+                Thêm
+              </Button>
+            </div>
+            {formData.requiredDocuments.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {formData.requiredDocuments.map((doc, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs bg-amber-50 text-amber-800 border border-amber-200"
+                  >
+                    <span>{doc}</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          requiredDocuments: formData.requiredDocuments.filter((_, i) => i !== idx),
+                        })
+                      }
+                      className="hover:text-red-600 ml-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Notes */}
