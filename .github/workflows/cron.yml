@@ -1,0 +1,20 @@
+name: Notification Cron
+
+on:
+  schedule:
+    # Chạy mỗi 15 phút một lần (Miễn phí qua GitHub Actions)
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Cho phép bấm nút chạy thử thủ công trên GitHub
+
+jobs:
+  trigger-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Notification Endpoint
+        run: |
+          if [ -n "${{ secrets.APP_URL }}" ]; then
+            curl -s -X GET "${{ secrets.APP_URL }}/api/cron/notifications" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          else
+            echo "APP_URL is not set yet, skipping."
+          fi
